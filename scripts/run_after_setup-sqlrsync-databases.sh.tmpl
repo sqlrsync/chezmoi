@@ -28,10 +28,11 @@ setup_database_sync \
     "{{ .name }}" \
     "{{ .remote }}" \
     "{{ .local_path }}" \
-    "{{ .sync_mode | default "pull_only" }}" \
-    "{{ .push_schedule | default "" }}" \
-    "{{ .pull_schedule | default "" }}" \
-    "{{ .subscribe_flags | default "" }}"
+    "{{ if hasKey . "sync_mode" }}{{ .sync_mode }}{{ else }}subscribe{{ end }}" \
+    "{{ if hasKey . "push_schedule" }}{{ .push_schedule }}{{ else }}{{ end }}" \
+    "{{ if hasKey . "pull_schedule" }}{{ .pull_schedule }}{{ else }}{{ end }}" \
+    "{{ if hasKey . "subscribe_flags" }}{{ .subscribe_flags }}{{ else }}{{ end }}"
+
 {{- end }}
 {{- end }}
 

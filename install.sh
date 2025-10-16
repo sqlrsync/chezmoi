@@ -1,9 +1,9 @@
 #!/bin/bash
-# One-liner installation script for chezmoi-sqlrsync-integration
+# One-liner installation script for chezmoi-sqlrsync
 
 set -euo pipefail
 
-REPO_URL="https://github.com/pnwmatt/chezmoi-sqlrsync-integration"
+REPO_URL="https://github.com/pnwmatt/chezmoi-sqlrsyncn"
 BRANCH="main"
 
 # Check if chezmoi is installed
@@ -31,7 +31,7 @@ trap 'rm -rf "$TEMP_DIR"' EXIT
 echo "Downloading from $REPO_URL..."
 curl -sSL "${REPO_URL}/archive/${BRANCH}.tar.gz" | tar -xz -C "$TEMP_DIR"
 
-EXTRACTED_DIR="$TEMP_DIR/chezmoi-sqlrsync-integration-${BRANCH}"
+EXTRACTED_DIR="$TEMP_DIR/chezmoi-sqlrsync-${BRANCH}"
 
 # Copy files
 echo "Installing scripts..."
