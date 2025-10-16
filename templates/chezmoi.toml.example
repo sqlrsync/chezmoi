@@ -1,0 +1,56 @@
+{{- /* Template for .chezmoi.toml.tmpl configuration */ -}}
+{{- /* This shows how to configure SQLRsync in your dotfiles */ -}}
+
+{{- /* Checks if running interactively */ -}}
+{{- $interactive := stdinIsATTY -}}
+
+{{- /* SQLRsync configuration variables */ -}}
+{{- $sqlrsyncEnabled := false -}}
+{{- $sqlrsyncInstallMethod := "github" -}}
+{{- $sqlrsyncVersion := "0.0.4" -}}
+
+{{- /* Check for existing configuration */ -}}
+{{- if hasKey . "sqlrsync" -}}
+{{-   $sqlrsyncEnabled = .sqlrsync.enabled -}}
+{{-   if hasKey .sqlrsync "install_method" -}}
+{{-     $sqlrsyncInstallMethod = .sqlrsync.install_method -}}
+{{-   end -}}
+{{-   if hasKey .sqlrsync "version" -}}
+{{-     $sqlrsyncVersion = .sqlrsync.version -}}
+{{-   end -}}
+{{- else if $interactive -}}
+{{-   $sqlrsyncEnabled = promptBool "Enable SQLRsync database synchronization" -}}
+{{-   if $sqlrsyncEnabled -}}
+{{-     $sqlrsyncInstallMethod = promptChoice "SQLRsync install method" (list "github" "manual") -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+  # ... your existing configuration ...
+
+{{- if $sqlrsyncEnabled }}
+  [data.sqlrsync]
+    enabled = {{ $sqlrsyncEnabled }}
+    install_method = "{{ $sqlrsyncInstallMethod }}"
+    version = "{{ $sqlrsyncVersion }}"
+    install_dir = "/usr/local/bin"  # Optional: custom install directory
+    
+    # Example database configurations
+    [[data.sqlrsync.databases]]
+      name = "staggered-repetition"
+      remote = "pnwmatt/staggered-repetition.db"
+      local_path = "~/.local/share/databases/staggered-repetition.db"
+      sync_mode = "subscribe"  # Real-time sync
+      subscribe_flags = "--waitIdle=10s"
+      enabled = true
+    
+    # Add more databases as needed:
+    # [[data.sqlrsync.databases]]
+    #   name = "notes"
+    #   remote = "username/notes.db"
+    #   local_path = "~/.local/share/databases/notes.db"
+    #   sync_mode = "push_pull"
+    #   push_schedule = "file_change_5m"  # Push 5 min after changes
+    #   pull_schedule = "daily_6am"       # Pull daily at 6am
+    #   enabled = true
+{{- end }}

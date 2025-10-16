@@ -1,0 +1,98 @@
+#!/bin/bash
+{{- if .sqlrsync.enabled }}
+
+set -euo pipefail
+
+# Source common utilities if available
+if [[ -f "${HOME}/scripts/lib/common_utils.sh" ]]; then
+    source "${HOME}/scripts/lib/common_utils.sh"
+else
+    log_message() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+fi
+
+install_sqlrsync() {
+    local install_method="{{ .sqlrsync.install_method | default "github" }}"
+    
+    case "$install_method" in
+        "github")
+            install_from_github
+            ;;
+        "manual")
+            log_message "Manual installation specified - SQLRsync should be installed manually"
+            return 0
+            ;;
+        *)
+            log_message "Unknown install method: $install_method"
+            return 1
+            ;;
+    esac
+}
+
+install_from_github() {
+    local version="{{ .sqlrsync.version | default "0.0.6" }}"
+    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local cpu=$(uname -m)
+    local arch="${os}-${cpu}"
+    local url="https://github.com/sqlrsync/client/releases/download/v${version}/sqlrsync-${arch}"
+    
+    log_message "Downloading SQLRsync version $version for $arch"
+    
+    # Download to temporary location
+    local temp_file="/tmp/sqlrsync-$$"
+    if ! curl -L "$url" -o "$temp_file"; then
+        log_message "Failed to download SQLRsync from $url"
+        return 1
+    fi
+    
+    # Make executable
+    chmod +x "$temp_file"
+    
+    # Move to final location
+    local install_dir="{{ .sqlrsync.install_dir | default "/usr/local/bin" }}"
+    if [[ "$install_dir" == "/usr/local/bin" ]] && [[ ! -w "$install_dir" ]]; then
+        sudo mv "$temp_file" "$install_dir/sqlrsync"
+    else
+        mv "$temp_file" "$install_dir/sqlrsync"
+    fi
+    
+    # macOS quarantine removal
+    if [[ "$os" == "darwin" ]]; then
+        log_message "Removing quarantine attribute on macOS"
+        xattr -rd com.apple.quarantine "$install_dir/sqlrsync" 2>/dev/null || true
+    fi
+    
+    log_message "SQLRsync installed successfully to $install_dir/sqlrsync"
+}
+
+# Check if SQLRsync is already installed
+if command -v sqlrsync &> /dev/null; then
+    current_version=$(sqlrsync --version 2>/dev/null | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' || echo "unknown")
+    expected_version="{{ .sqlrsync.version | default "0.0.4" }}"
+    
+    if [[ "$current_version" == "v$expected_version" ]]; then
+        log_message "SQLRsync $current_version already installed"
+        exit 0
+    else
+        log_message "SQLRsync $current_version found, but expected v$expected_version. Updating..."
+    fi
+else
+    log_message "SQLRsync not found. Installing..."
+fi
+
+# Install SQLRsync
+if install_sqlrsync; then
+    # Verify installation
+    if sqlrsync --version; then
+        log_message "SQLRsync installation verified successfully"
+    else
+        log_message "SQLRsync installation verification failed"
+        exit 1
+    fi
+else
+    log_message "SQLRsync installation failed"
+    exit 1
+fi
+
+{{- end }}

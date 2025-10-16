@@ -1,0 +1,46 @@
+#!/bin/bash
+{{- if and .sqlrsync.enabled (gt (len .sqlrsync.databases) 0) }}
+
+set -euo pipefail
+
+# Source utilities
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [[ -f "$SCRIPT_DIR/lib/sqlrsync_utils.sh" ]]; then
+    source "$SCRIPT_DIR/lib/sqlrsync_utils.sh"
+elif [[ -f "${HOME}/scripts/lib/sqlrsync_utils.sh" ]]; then
+    source "${HOME}/scripts/lib/sqlrsync_utils.sh"
+else
+    log_message() {
+        echo "$(date '+%Y-%m-%d %H:%M:%S') - $1"
+    }
+    echo "Warning: sqlrsync_utils.sh not found, using basic logging"
+fi
+
+log_message "Setting up SQLRsync database synchronization"
+
+# Create necessary directories
+mkdir -p ~/.local/share/databases
+mkdir -p ~/.config/systemd/user 2>/dev/null || true
+
+{{- range .sqlrsync.databases }}
+{{- if .enabled }}
+setup_database_sync \
+    "{{ .name }}" \
+    "{{ .remote }}" \
+    "{{ .local_path }}" \
+    "{{ .sync_mode | default "pull_only" }}" \
+    "{{ .push_schedule | default "" }}" \
+    "{{ .pull_schedule | default "" }}" \
+    "{{ .subscribe_flags | default "" }}"
+{{- end }}
+{{- end }}
+
+# Reload systemd user daemon if we created any services
+if command -v systemctl &> /dev/null && [[ -d ~/.config/systemd/user ]]; then
+    log_message "Reloading systemd user daemon"
+    systemctl --user daemon-reload || true
+fi
+
+log_message "SQLRsync database setup completed"
+
+{{- end }}
