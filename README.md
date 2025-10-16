@@ -15,9 +15,8 @@ Add to your `.chezmoi.toml.tmpl`:
     name = "staggered-repetition"
     remote = "pnwmatt/staggered-repetition.db"
     local_path = "~/.local/share/databases/staggered-repetition.db"
-    sync_mode = "subscribe"  # "subscribe", "pull_only", "push_pull"
-    push_schedule = "file_change_5m"  # Push 5 min after file changes
-    pull_schedule = "daily_6am"  # Pull daily at 6am
+    sync_mode = "subscribe"  # "subscribe", "cron:push", "cron:pull"
+    subscribe_flags = "--waitIdle=10s" 
     enabled = true
 ```
 
@@ -38,9 +37,9 @@ chezmoi apply
 ## Configuration Options
 
 ### Sync Modes
-- `subscribe`: Real-time sync using websockets
-- `pull_only`: Download-only mode
-- `push_pull`: Bidirectional sync
+- `subscribe`: Real-time bidirectional sync using websockets
+- `cron:pull`: Downloads latest version on a schedule for read-replicas
+- `cron:push`: Backup databases on a schedule
 
 ### Schedule Formats
 - `file_change_Xm`: Push X minutes after file changes
@@ -52,7 +51,3 @@ chezmoi apply
 ## Examples
 
 See `examples/` directory for complete configuration examples.
-
-## License
-
-MIT License - see LICENSE file.
